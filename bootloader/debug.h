@@ -17,9 +17,8 @@
  * License along with this library.
  */
 
-#include <stdio.h>
-
 #ifdef _DEBUG
+	#include <stdio.h>
 
   #define debug(x) printf(x)
   #define debug2(x,y) printf(x,y)

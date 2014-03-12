@@ -20,9 +20,8 @@ Requirements
 
 How to build
 ------------
-* Enter bootloader directory
-* Edit Makefile
-* Type 'make'
+* Edit Makefiles
+* Type 'make' on project root directory
 
 Install bootloader with PICkit2
 -------------------------------
@@ -31,3 +30,20 @@ pk2cmd -PPIC18F2550 -M -Foutput.hex -R
 Flash application with dfu-utils
 --------------------------------
 dfu-util -D output.dfu
+
+What works
+----------
+* Download application
+
+What does not
+-------------
+* Upload
+* Interrupts
+
+ToDo
+----
+* Implement Upload
+* Relocate Interrupt Vector Table
+* Add application example
+* Fix bugs and check boundaries
+* Make it more configurable

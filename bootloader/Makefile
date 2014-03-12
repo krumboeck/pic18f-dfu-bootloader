@@ -8,8 +8,9 @@ AS=gpasm
 LD=gplink
 SC=srec_cat
 
-CFLAGS=-S -mpic16 -p$(MCU) -Wall -I/usr/share/sdcc/include/pic16 -I. -D_DEBUG
-# CFLAGS=-S -mpic16 -p$(MCU) -Wall -I/usr/share/sdcc/include/pic16 -I.
+OFLAGS=--obanksel=9 --optimize-cmp --optimize-df --denable-peeps --opt-code-size
+# CFLAGS=-S -mpic16 -p$(MCU) -Wall -I/usr/share/sdcc/include/pic16 -I. $(OFLAGS) -D_DEBUG
+CFLAGS=-S -mpic16 -p$(MCU) -Wall -I/usr/share/sdcc/include/pic16 -I. $(OFLAGS)
 ASFLAGS=
 LDFLAGS=-I/usr/share/sdcc/lib/pic16 -w -r -m -s 18f2550.lkr
 

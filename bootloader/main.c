@@ -19,8 +19,11 @@
 
 // #include "pic18fregs.h"
 #include <pic18f2550.h>
-#include <stdio.h>
-#include <usart.h>
+
+#ifdef _DEBUG
+	#include <stdio.h>
+	#include <usart.h>
+#endif
 
 #include "debug.h"
 #include "typedef.h"
@@ -66,12 +69,14 @@ void main(void) {
 	TRISCbits.TRISC6 = 0; //TX pin set as output
 	TRISCbits.TRISC7 = 1; //RX pin set as input
 
+#ifdef _DEBUG
 	usart_open(
 			USART_TX_INT_OFF & USART_RX_INT_OFF & USART_BRGH_HIGH
 					& USART_EIGHT_BIT & USART_ASYNCH_MODE, 25 // BAUD_RATE_GEN is calculated as = [Fosc / (16 * Desired Baudrate)] - 1
 			);
 
 	stdout = STREAM_USART;
+#endif
 
 	debug("Serial interface started\n");
 
