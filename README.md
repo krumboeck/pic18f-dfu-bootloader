@@ -38,12 +38,14 @@ What works
 What does not
 -------------
 * Upload
+
+Should work, but not tested
+---------------------------
 * Interrupts
 
 ToDo
 ----
 * Implement Upload
-* Relocate Interrupt Vector Table
 * Add application example
 * Fix bugs and check boundaries
 * Make it more configurable

@@ -14,8 +14,7 @@ CFLAGS=-S -mpic16 -p$(MCU) -Wall -I/usr/share/sdcc/include/pic16 -I. $(OFLAGS)
 ASFLAGS=
 LDFLAGS=-I/usr/share/sdcc/lib/pic16 -w -r -m -s 18f2550.lkr
 
-# CSRCS=main.c usb/usb.c usb/usb_descriptors.c usb/ep0.c usb/ep1.c usb/ep2.c dfu/dfu.c
-CSRCS=main.c usb/usb.c usb/usb_descriptors.c usb/ep0.c dfu/dfu.c flash.c
+CSRCS=vector.c main.c usb/usb.c usb/usb_descriptors.c usb/ep0.c dfu/dfu.c flash.c
 
 ASMSRCS = $(CSRCS:.c=.asm)
 OBJS = $(ASMSRCS:.asm=.o)
