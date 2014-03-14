@@ -1,5 +1,5 @@
 
-OUTPUT=output
+OUTPUT=bootloader
 MCU=18f2550
 
 #CC=sdcc

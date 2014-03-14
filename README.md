@@ -25,11 +25,11 @@ How to build
 
 Install bootloader with PICkit2
 -------------------------------
-pk2cmd -PPIC18F2550 -M -Foutput.hex -R
+pk2cmd -PPIC18F2550 -M -Fbootloader.hex -R
 
 Flash application with dfu-utils
 --------------------------------
-dfu-util -D output.dfu
+dfu-util -D example.dfu
 
 What works
 ----------
@@ -46,6 +46,5 @@ Should work, but not tested
 ToDo
 ----
 * Implement Upload
-* Add application example
 * Fix bugs and check boundaries
 * Make it more configurable
