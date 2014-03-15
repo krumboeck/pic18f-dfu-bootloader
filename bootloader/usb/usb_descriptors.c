@@ -95,15 +95,20 @@ const u8 str1[] = {sizeof(str1),  STRING_DESCRIPTOR,
                                               'd',0x00};
 
 const u8 str2[] = {sizeof(str2),  STRING_DESCRIPTOR,
-                                              'O',0x00,
-                                              'T',0x00,
-                                              'R',0x00,
-                                              'N',0x00,
-                                              'G',0x00,
-                                              '-',0x00,
                                               'D',0x00,
                                               'F',0x00,
-                                              'U',0x00};
+                                              'U',0x00,
+                                              '-',0x00,
+                                              'B',0x00,
+                                              'o',0x00,
+                                              'o',0x00,
+                                              't',0x00,
+                                              'l',0x00,
+                                              'o',0x00,
+                                              'a',0x00,
+                                              'd',0x00,
+                                              'e',0x00,
+                                              'r',0x00};
 
 const u8 str3[] = {sizeof(str3), STRING_DESCRIPTOR, '1',0x00};
 

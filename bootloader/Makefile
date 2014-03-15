@@ -1,18 +1,26 @@
+###########################################################
+# BEGIN CONFIGURATION
+###########################################################
 
-OUTPUT=bootloader
 MCU=18f2550
 
-#CC=sdcc
+# CC=sdcc
 CC=~/projekte/zufallszahlengenerator/bootloader/puf-1.1/tools/bin/sdcc
 AS=gpasm
 LD=gplink
 SC=srec_cat
 
+OUTPUT=bootloader
+
+###########################################################
+# END CONFIGURATION
+###########################################################
+
+
 OFLAGS=--obanksel=9 --optimize-cmp --optimize-df --denable-peeps --opt-code-size
-# CFLAGS=-S -mpic16 -p$(MCU) -Wall -I/usr/share/sdcc/include/pic16 -I. $(OFLAGS) -D_DEBUG
 CFLAGS=-S -mpic16 -p$(MCU) -Wall -I/usr/share/sdcc/include/pic16 -I. $(OFLAGS)
 ASFLAGS=
-LDFLAGS=-I/usr/share/sdcc/lib/pic16 -w -r -m -s 18f2550.lkr
+LDFLAGS=-I/usr/share/sdcc/lib/pic16 -w -r -m -s $(MCU).lkr
 
 CSRCS=vector.c main.c usb/usb.c usb/usb_descriptors.c usb/ep0.c dfu/dfu.c flash.c
 
@@ -28,7 +36,7 @@ $(OUTPUT)_config.bin: $(OUTPUT).hex
 	$(SC) $(OUTPUT).hex -intel -crop 0x300000 0x30000D -offset -0x300000 -o $(OUTPUT)_config.bin -binary
 
 $(OUTPUT).hex: $(ASMSRCS) $(OBJS)
-	$(LD) $(LDFLAGS) -o $(OUTPUT) $(OBJS) crt0i.o pic18f2550.lib libsdcc.lib libio18f2550.lib libc18f.lib
+	$(LD) $(LDFLAGS) -o $(OUTPUT) $(OBJS) crt0i.o pic$(MCU).lib libsdcc.lib libio$(MCU).lib libc18f.lib
 
 clean:
 	rm -f *.o

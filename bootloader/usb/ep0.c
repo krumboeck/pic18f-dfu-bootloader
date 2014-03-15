@@ -39,7 +39,7 @@
 volatile far StandardRequest SetupBuffer;
 
 #pragma udata usbram5 InBuffer
-volatile far u8 InBuffer[DATA_BUFFER_SIZE];
+volatile far u8 InBuffer[EP0_BUFFER_SIZE];
 
 static u8 ep0_state;
 static u16 num_bytes_to_be_send;
@@ -219,7 +219,7 @@ void ep0_in(void) {
 			EP_IN_BD(0).Stat.uc = BDS_USIE | BDS_DAT0 | BDS_DTSEN;
 		}
 	} else if (ep0_state == WAIT_DFU_IN) {
-		fill_in_buffer(0, &sourceData, DATA_BUFFER_SIZE, &num_bytes_to_be_send);
+		fill_in_buffer(0, &sourceData, EP0_BUFFER_SIZE, &num_bytes_to_be_send);
 
 		if (EP_IN_BD(0).Stat.DTS == 0) {
 			EP_IN_BD(0).Stat.uc = BDS_USIE | BDS_DAT1 | BDS_DTSEN;
@@ -321,7 +321,7 @@ void ep0_setup(void) {
 		{
 			ep0_state = WAIT_OUT;
 
-			EP_OUT_BD(0).Cnt = DATA_BUFFER_SIZE;
+			EP_OUT_BD(0).Cnt = EP0_BUFFER_SIZE;
 			EP_OUT_BD(0).ADR = (u8 __data *)InBuffer;
 			EP_OUT_BD(0).Stat.uc = BDS_USIE | BDS_DAT1 | BDS_DTSEN;
 
@@ -349,7 +349,7 @@ void ep0_setup(void) {
 		{
 			ep0_state = WAIT_DFU_OUT;
 
-			EP_OUT_BD(0).Cnt = DATA_BUFFER_SIZE;
+			EP_OUT_BD(0).Cnt = EP0_BUFFER_SIZE;
 			EP_OUT_BD(0).ADR = (u8 __data *)InBuffer;
 			EP_OUT_BD(0).Stat.uc = BDS_USIE | BDS_DAT1 | BDS_DTSEN;
 

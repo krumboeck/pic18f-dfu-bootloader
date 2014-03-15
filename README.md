@@ -18,9 +18,15 @@ Requirements
 * SRecord
 * dfu-utils or any other DFU Software
 
+Bootloader Configuration
+------------------------
+* Edit bootloader/config.h
+* Edit bootloader/Makefile
+* Edit bootloader/fuses.h
+* Edit bootloader/usb/usb_descriptors.c
+
 How to build
 ------------
-* Edit Makefiles
 * Type 'make' on project root directory
 
 Install bootloader with PICkit2
@@ -47,4 +53,3 @@ ToDo
 ----
 * Implement Upload
 * Fix bugs and check boundaries
-* Make it more configurable

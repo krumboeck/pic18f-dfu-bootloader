@@ -292,13 +292,13 @@ void dfuExecCommand() {
 		int written = 0;
 		debug("writing ...\n");
 		while (counter > 0) {
-			if (counter >= 32) {
-				writeFlash(address + written, (u8 __data *)&transfer[written], 32);
+			if (counter >= FLASH_WRITE_SIZE) {
+				writeFlash(address + written, (u8 __data *)&transfer[written], FLASH_WRITE_SIZE);
 			} else {
 				writeFlash(address + written, (u8 __data *)&transfer[written], counter);
 			}
-			counter = counter - 32;
-			written = written + 32;
+			counter = counter - FLASH_WRITE_SIZE;
+			written = written + FLASH_WRITE_SIZE;
 		}
 	} else {
 		debug("do nothing\n");

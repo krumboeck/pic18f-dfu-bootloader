@@ -17,7 +17,12 @@
  * License along with this library.
  */
 
-#define FLASH_WRITE_SIZE 32
-
-void eraseFlash(u32 address);
-void writeFlash(u32 address, u8 *buffer, u8 length);
+#ifdef LED_OUTPUT
+	#define led_init() LED_TRIS = 0
+	#define led_on() LED_OUTPUT = 0
+	#define led_off() LED_OUTPUT = 1
+#else
+	#define led_init()
+	#define led_on()
+	#define led_off()
+#endif

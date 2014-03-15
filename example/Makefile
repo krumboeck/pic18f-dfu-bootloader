@@ -17,7 +17,7 @@ DFUPY=../dfu/dfu.py
 
 CFLAGS=-S -mpic16 -p$(MCU) -Wall -I/usr/share/sdcc/include/pic16 -I. --ivt-loc=$(ENTRY)
 ASFLAGS=
-LDFLAGS=-I/usr/share/sdcc/lib/pic16 -w -r -m -s 18f2550.lkr
+LDFLAGS=-I/usr/share/sdcc/lib/pic16 -w -r -m -s $(MCU).lkr
 
 CSRCS=main.c
 
@@ -33,7 +33,7 @@ $(OUTPUT).bin: $(OUTPUT).hex
 	$(SC) $(OUTPUT).hex -intel -crop $(ENTRY) $(END) -offset -$(ENTRY) -o $(OUTPUT).bin -binary
 
 $(OUTPUT).hex: $(ASMSRCS) $(OBJS) crt018.o
-	$(LD) $(LDFLAGS) -o $(OUTPUT) $(OBJS) crt018.o pic18f2550.lib libsdcc.lib libio18f2550.lib libc18f.lib
+	$(LD) $(LDFLAGS) -o $(OUTPUT) $(OBJS) crt018.o pic$(MCU).lib libsdcc.lib libio$(MCU).lib libc18f.lib
 
 clean:
 	rm -f *.o

@@ -17,7 +17,26 @@
  * License along with this library.
  */
 
+/*
+ * Application start address
+ */
+#define ENTRY 0x4000
+
+/*
+ * Comment out the next two lines if there is no led
+ */
+#define LED_OUTPUT LATBbits.LATB0
+#define LED_TRIS TRISBbits.TRISB0
+
+/*
+ * Comment out the next three lines if there is no button/jumper
+ */
+#define BUTTON_TRIS TRISBbits.TRISB4
+#define BUTTON_PORT PORTB
+#define BUTTON_PIN 4
+
+/*
+ * Internal config
+ */
 #define EP0_BUFFER_SIZE 64
 #define DATA_BUFFER_SIZE 64
-
-#define ENTRY 0x4000
