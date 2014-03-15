@@ -26,7 +26,7 @@
 void delay_ms(unsigned int duration) {
 	unsigned int i;
 	unsigned int j;
-	for (i = duration; i != 0; duration--) {
+	for (i = duration; i != 0; i--) {
 		for (j = 0; j <= 1000; j++) {
 			__asm
 				nop
