@@ -40,6 +40,16 @@ u32 address;
 u8 transfer[DATA_BUFFER_SIZE];
 u16 transfer_length;
 
+void* memcpy(void *dest, const void *src, u16 count) {
+    char *dst8 = (u8 *)dest;
+    char *src8 = (u8 *)src;
+
+    while (count--) {
+        *dst8++ = *src8++;
+    }
+    return dest;
+}
+
 void init_dfu(void) {
 	dfu_status.bStatus = OK;
 	dfu_status.bwPollTimeout0 = 0;
@@ -49,17 +59,19 @@ void init_dfu(void) {
 	dfu_status.iString = 0;
 	dfu_op_state = INIT;
 	dfuBusy = 0;
+	address = 0;
 }
 
 u8 process_dfu_request(StandardRequest *request) {
 	u8 currentState = dfu_status.bState;
 	dfu_status.bStatus = OK;
 
-	debug2(" rtyp: %d\n", request->bmRequestType);
-	debug2(" rqst: %d\n", request->bRequest);
+	// debug2(" rtyp: %d\n", request->bmRequestType);
+	// debug2(" rqst: %d\n", request->bRequest);
 	// debug2("DFU Index  : %d\r\n", request->wIndex);
 
 	dfuBusy = 1;
+	// dfuSubCommand = DFU_NO_CMD;
 
 	if (currentState == dfuIDLE) {
 		dfuBusy = 1;
@@ -97,6 +109,12 @@ u8 process_dfu_request(StandardRequest *request) {
 			//userFirmwareLen = uploadBlockLen * request->wValue;
 			if (request->wIndex == 0) {
 				debug("DFU Start Upload\r\n");
+				if (request->wValue == 0) {
+					dfuSubCommand = DFU_CMD_GET_CMD;
+				} else {
+					dfuSubCommand = DFU_CMD_UPLOAD;
+					address = ENTRY;
+				}
 				/*
 				 userAppAddr = USER_CODE_FLASH;
 				 userAppEnd = FLASH_END;
@@ -177,6 +195,7 @@ u8 process_dfu_request(StandardRequest *request) {
 			}
 		} else if (request->bRequest == DFU_ABORT) {
 			dfu_status.bState = dfuIDLE;
+			address = 0;
 		} else if (request->bRequest == DFU_GETSTATUS) {
 			dfu_status.bState = dfuIDLE;
 		} else if (request->bRequest == DFU_GETSTATE) {
@@ -218,6 +237,12 @@ u8 process_dfu_request(StandardRequest *request) {
 
 		if (request->bRequest == DFU_UPLOAD) {
 			if (request->wLength > 0) {
+				if (request->wValue == 0) {
+					dfuSubCommand = DFU_CMD_GET_CMD;
+				} else {
+					dfuSubCommand = DFU_CMD_UPLOAD;
+					address = ENTRY;
+				}
 				/* check that this is not the last possible block */
 				/*
 				 userFirmwareLen = uploadBlockLen * request->wValue;
@@ -243,6 +268,7 @@ u8 process_dfu_request(StandardRequest *request) {
 			}
 		} else if (request->bRequest == DFU_ABORT) {
 			dfu_status.bState = dfuIDLE;
+			address = 0;
 		} else if (request->bRequest == DFU_GETSTATUS) {
 			dfu_status.bState = dfuUPLOAD_IDLE;
 		} else if (request->bRequest == DFU_GETSTATE) {
@@ -286,19 +312,33 @@ u8 process_dfu_request(StandardRequest *request) {
 void dfuExecCommand() {
 	if (dfuSubCommand == DFU_CMD_ERASE_PAGE) {
 		debug("erasing ...\n");
-		eraseFlash(address);
+		if (address >= ENTRY && address <= FLASH_END) {
+			eraseFlash(address);
+		} else {
+			dfu_status.bState = dfuERROR;
+			dfu_status.bStatus = errADDRESS;
+		}
 	} else if (dfuSubCommand == DFU_CMD_DOWNLOAD) {
-		int counter = transfer_length;
-		int written = 0;
-		debug("writing ...\n");
-		while (counter > 0) {
-			if (counter >= FLASH_WRITE_SIZE) {
-				writeFlash(address + written, (u8 __data *)&transfer[written], FLASH_WRITE_SIZE);
-			} else {
-				writeFlash(address + written, (u8 __data *)&transfer[written], counter);
+		if (address >= ENTRY && address <= FLASH_END) {
+			int counter;
+			int written = 0;
+			if ((FLASH_END - address + 1) < transfer_length) {
+				transfer_length = FLASH_END - address + 1;
 			}
-			counter = counter - FLASH_WRITE_SIZE;
-			written = written + FLASH_WRITE_SIZE;
+			counter = transfer_length;
+			debug2("writing address: %lx\n", address);
+			while (counter > 0) {
+				if (counter >= FLASH_WRITE_SIZE) {
+					writeFlash(address + written, (u8 __data *)&transfer[written], FLASH_WRITE_SIZE);
+				} else {
+					writeFlash(address + written, (u8 __data *)&transfer[written], counter);
+				}
+				counter = counter - FLASH_WRITE_SIZE;
+				written = written + FLASH_WRITE_SIZE;
+			}
+		} else {
+			dfu_status.bState = dfuERROR;
+			dfu_status.bStatus = errADDRESS;
 		}
 	} else {
 		debug("do nothing\n");
@@ -325,6 +365,10 @@ void process_dfu_data(u8 *buffer, u16 length) {
 			if (length == 5) {
 				address = (u32) buffer[4] << 24 | (u32) buffer[3] << 16 | (u32) buffer[2] << 8 | (u32) buffer[1];
 				debug2("Set address to %lx\n", address);
+				if (address < ENTRY || address > FLASH_END) {
+					dfu_status.bState = dfuERROR;
+					dfu_status.bStatus = errADDRESS;
+				}
 			} else {
 				dfu_status.bState = dfuERROR;
 				dfu_status.bStatus = errSTALLEDPKT;
@@ -359,7 +403,76 @@ void process_dfu_data(u8 *buffer, u16 length) {
 		} else {
 			transfer_length = 0;
 			dfuSubCommand = DFU_WAIT_CMD;
-			// TODO: Error
+			dfu_status.bState = dfuERROR;
+			dfu_status.bStatus = errUNKNOWN;
 		}
 	}
+
 }
+
+u16 read_dfu_data(StandardRequest *request, u8 *buffer, u16 max_length) {
+	u16 length = 0;
+	debug("read dfu\n");
+	if (request->bRequest == DFU_GETSTATUS) {
+		length = 6;
+		buffer[0] = dfu_status.bStatus;
+		buffer[1] = dfu_status.bwPollTimeout0;
+		buffer[2] = dfu_status.bwPollTimeout1;
+		buffer[3] = dfu_status.bwPollTimeout2;
+		buffer[4] = dfu_status.bState;
+		buffer[5] = dfu_status.iString;
+	} else if (request->bRequest == DFU_GETSTATE) {
+		length = 1;
+		buffer[0] = dfu_status.bState;
+	} else if (dfuSubCommand == DFU_CMD_GET_CMD) {
+		length = 3;
+		buffer[0] = GET_COMMAND_TOKEN;
+		buffer[1] = SET_ADDRESS_TOKEN;
+		buffer[2] = ERASE_PAGE_TOKEN;
+	} else if (dfuSubCommand == DFU_CMD_UPLOAD) {
+		u32 read_address;
+		debug("upload\n");
+		if (address < ENTRY) {
+			address = ENTRY;
+		}
+		read_address = (request->wValue - 2) * DATA_BUFFER_SIZE + address;
+		debug2("address: %lx\n", read_address);
+		if (read_address >= FLASH_END) {
+			length = 0;
+			dfu_status.bState = dfuIDLE;
+			/*
+			dfu_status.bState = dfuERROR;
+			dfu_status.bStatus = errADDRESS;
+			*/
+		} else {
+			int counter;
+			int readed = 0;
+			length = DATA_BUFFER_SIZE;
+			if (length > max_length) {
+				length = max_length;
+			}
+			if (length > request->wLength) {
+				length = request->wLength;
+			}
+			if ((FLASH_END - read_address + 1) < length) {
+				length = FLASH_END - read_address + 1;
+			}
+
+			counter = length;
+			while (counter > 0) {
+				if (counter >= FLASH_WRITE_SIZE) {
+					readFlash(read_address + readed, (u8 __data *)&buffer[readed], FLASH_WRITE_SIZE);
+				} else {
+					readFlash(read_address + readed, (u8 __data *)&buffer[readed], counter);
+				}
+				counter = counter - FLASH_WRITE_SIZE;
+				readed = readed + FLASH_WRITE_SIZE;
+			}
+
+			debug2("1: %x\n", buffer[0]);
+
+		}
+	}
+	return length;
+}
+

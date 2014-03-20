@@ -20,4 +20,5 @@
 #define FLASH_WRITE_SIZE 32
 
 void eraseFlash(u32 address);
+void readFlash(u32 address, u8 *buffer, u8 length);
 void writeFlash(u32 address, u8 *buffer, u8 length);

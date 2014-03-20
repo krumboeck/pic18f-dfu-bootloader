@@ -38,5 +38,6 @@
 /*
  * Internal config
  */
-#define EP0_BUFFER_SIZE 64
-#define DATA_BUFFER_SIZE 64
+#define FLASH_END 0x7FFF
+#define EP0_BUFFER_SIZE 32
+#define DATA_BUFFER_SIZE 32

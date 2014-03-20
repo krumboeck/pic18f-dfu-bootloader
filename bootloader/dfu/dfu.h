@@ -88,14 +88,18 @@ typedef enum {
 
 extern DFU_Status dfu_status;
 
-#define DFU_WAIT_CMD              0
-#define DFU_CMD_DOWNLOAD          1
-#define DFU_CMD_SET_ADDRESS       2
-#define DFU_CMD_ERASE_PAGE        3
-#define DFU_CMD_MASS_ERASE        4
-#define DFU_CMD_READ_UNPROTECTED  5
-#define DFU_CMD_JUMP_APP          6
+#define DFU_NO_CMD                0
+#define DFU_WAIT_CMD              1
+#define DFU_CMD_GET_CMD           2
+#define DFU_CMD_UPLOAD            3
+#define DFU_CMD_DOWNLOAD          4
+#define DFU_CMD_SET_ADDRESS       5
+#define DFU_CMD_ERASE_PAGE        6
+#define DFU_CMD_MASS_ERASE        7
+#define DFU_CMD_READ_UNPROTECTED  8
+#define DFU_CMD_JUMP_APP          9
 
+#define GET_COMMAND_TOKEN       0x00
 #define SET_ADDRESS_TOKEN       0x21
 #define ERASE_PAGE_TOKEN        0x41
 #define READ_UNPROTECTED_TOKEN  0x92
@@ -103,6 +107,7 @@ extern DFU_Status dfu_status;
 void init_dfu(void);
 u8 process_dfu_request(StandardRequest *request);
 void process_dfu_data(u8 *buffer, u16 length);
+u16 read_dfu_data(StandardRequest *request, u8 *buffer, u16 max_length);
 
 u8 dfuOperationStarted(void);
 void dfuFinishOperation();

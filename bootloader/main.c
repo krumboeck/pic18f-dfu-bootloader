@@ -91,9 +91,6 @@ void main(void) {
 	init_usb();
 	debug("USB interface started\n");
 
-	init_dfu();
-	debug("DFU started\n");
-
 	/*
 	 * Run USB, DFU, ...
 	 */

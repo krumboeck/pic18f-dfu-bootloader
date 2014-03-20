@@ -45,6 +45,7 @@ static u8 ep0_state;
 static u16 num_bytes_to_be_send;
 static u8 *sourceData;
 static u8 coming_cfg;
+u8 ReadBuffer[EP0_BUFFER_SIZE];
 
 u8 ep0_usb_std_request(void) {
 	// hack to avoid register allocation bug in sdcc
@@ -152,23 +153,9 @@ u8 ep0_dfu_request(void) {
 	unknown_request = !process_dfu_request((u8 __data *)&SetupBuffer);
 
 	if (!unknown_request) {
-		switch (SetupBuffer.bRequest) {
-		/*
-		case DFU_DNLOAD:
-			sourceData = (u8 __data *)InBuffer;
-			num_bytes_to_be_send = SetupBuffer.wLength;
-			break;
-			*/
-		case DFU_GETSTATE:
-			sourceData = &(dfu_status.bState);
-			num_bytes_to_be_send = 1;
-			break;
-		case DFU_GETSTATUS:
-			sourceData = &dfu_status;
-			num_bytes_to_be_send = 6;
-			break;
-		default:
-			break;
+		if (SetupBuffer.data_transfer_direction == DEVICE_TO_HOST) {
+			num_bytes_to_be_send = read_dfu_data((u8 __data *)&SetupBuffer, (u8 __data *)ReadBuffer, EP0_BUFFER_SIZE);
+			sourceData = (u8 __data *) ReadBuffer;
 		}
 	}
 
@@ -177,6 +164,7 @@ u8 ep0_dfu_request(void) {
 
 void ep0_init(void) {
 	debug_usb("ep0_init\r\n");
+	init_dfu();
 	ep0_state = WAIT_SETUP;
 	EP_OUT_BD(0).Cnt = EP0_BUFFER_SIZE;
 	EP_OUT_BD(0).ADR = (u8 __data *)&SetupBuffer;
@@ -221,14 +209,19 @@ void ep0_in(void) {
 	} else if (ep0_state == WAIT_DFU_IN) {
 		fill_in_buffer(0, &sourceData, EP0_BUFFER_SIZE, &num_bytes_to_be_send);
 
+
 		if (EP_IN_BD(0).Stat.DTS == 0) {
 			EP_IN_BD(0).Stat.uc = BDS_USIE | BDS_DAT1 | BDS_DTSEN;
 		} else {
 			EP_IN_BD(0).Stat.uc = BDS_USIE | BDS_DAT0 | BDS_DTSEN;
 		}
 	} else {
-		debug("3\n");
-		ep0_init();
+		ep0_state = WAIT_SETUP;
+		EP_OUT_BD(0).Cnt = EP0_BUFFER_SIZE;
+		EP_OUT_BD(0).ADR = (u8 __data *)&SetupBuffer;
+		EP_OUT_BD(0).Stat.uc = BDS_USIE | BDS_DAT0 | BDS_DTSEN;
+		EP_IN_BD(0).Stat.uc = BDS_UCPU;
+		UEP0 = EPINEN_EN | EPOUTEN_EN | EPHSHK_EN;
 	}
 
 	if (GET_DEVICE_STATE() == CONFIGURATION_PENDING_STATE) {
@@ -340,7 +333,9 @@ void ep0_setup(void) {
 			EP_IN_BD(0).ADR = (u8 __data *)InBuffer;
 			if (SetupBuffer.wLength < num_bytes_to_be_send) {
 				num_bytes_to_be_send = SetupBuffer.wLength;
-			} debug2_usb("bytes to send: %d\r\n", num_bytes_to_be_send);
+			}
+			debug2_usb("bytes to send: %d\n", num_bytes_to_be_send);
+			// debug2("2: %x\n", sourceData[0]);
 			fill_in_buffer(0, &sourceData, EP0_BUFFER_SIZE,
 					&num_bytes_to_be_send);
 			EP_IN_BD(0).Stat.uc = BDS_USIE | BDS_DAT1 | BDS_DTSEN;
@@ -355,9 +350,6 @@ void ep0_setup(void) {
 
 			EP_IN_BD(0).Cnt = 0;
 			EP_IN_BD(0).Stat.uc = BDS_USIE | BDS_DAT1 | BDS_DTSEN;
-
-			// printf("C%d\r\n", InBuffer[0]);
-			// debug2("Address: %08x\r\n", (u8 __data *)InBuffer + 1);
 
 		}
 	} else {

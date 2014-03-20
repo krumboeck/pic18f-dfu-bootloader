@@ -66,7 +66,7 @@ const USB_Default_Composite_Descriptor boot_default_cfg = {
 				DFU_INTERFACE_DESCRIPTOR,       // DFU Interface descriptor type
 				0x0b,  // bmAttributes: bitCanDnload | bitCanUpload | willDetach
 				0x00ff,                             // Detach timeout in ms: 255
-				0x0040,                           // Transfersize in bytes: 64
+				0x0020,                           // Transfersize in bytes: 32
 				0x011a },                              // DFU Version. 1.1a
 		};
 

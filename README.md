@@ -17,6 +17,7 @@ Requirements
 * GNU PIC Utilities (gputils)
 * SRecord
 * dfu-utils or any other DFU Software
+* Python
 
 Bootloader Configuration
 ------------------------
@@ -40,9 +41,6 @@ dfu-util -D example.dfu
 What works
 ----------
 * Download application
-
-What does not
--------------
 * Upload
 
 Should work, but not tested
@@ -51,5 +49,4 @@ Should work, but not tested
 
 ToDo
 ----
-* Implement Upload
-* Fix bugs and check boundaries
+* Fix various bugs

@@ -52,6 +52,42 @@ void eraseFlash(u32 address) {
 
 }
 
+void readFlash(u32 address, u8 *buffer, u8 length) {
+
+	int counter;
+
+	TBLPTRL = (address) & 0xFF;
+	TBLPTRH = (address >> 8) & 0xFF;
+	TBLPTRU = (address >> 16) & 0xFF;
+
+
+	/*
+    EECON1 = 0xA4; // 0b10100100
+    EECON2 = 0x55;
+    EECON2 = 0xAA;
+	EECON1bits.RD = 1;
+	*/
+
+	EECON1bits.EEPGD = 1;
+	EECON1bits.CFGS = 0;
+	EECON1bits.RD = 1;
+
+    __asm
+    	NOP
+    	NOP
+    	NOP
+    __endasm;
+
+	for (counter = 0; counter < length; counter++) {
+        // TBLPTR is incremented after the read
+        __asm
+        	TBLRD*+
+        __endasm;
+        *(buffer + counter) = TABLAT;
+    }
+
+}
+
 void writeFlash(u32 address, u8 *buffer, u8 length) {
 
 	int counter;
@@ -73,12 +109,13 @@ void writeFlash(u32 address, u8 *buffer, u8 length) {
 
     EECON1 = 0xA4; // 0b10100100
 
+    INTCONbits.GIE = 0;
+
     /// The programming block is 32 bytes for all chips except x5k50
     /// The programming block is 64 bytes for x5k50.
 
     // Load max. 32 holding registers
-    for (counter = 0; counter < length; counter++)
-    {
+    for (counter = 0; counter < length; counter++) {
         TABLAT = buffer[counter]; // present data to table latch
         // write data in TBLWT holding register
         // TBLPTR is incremented after the read/write
@@ -102,4 +139,7 @@ void writeFlash(u32 address, u8 *buffer, u8 length) {
                             // It is cleared in hardware at the completion
                             // of the write or erase operation.
                             // CPU stall here for 2ms
+
+    INTCONbits.GIE = 1;
+
 }
