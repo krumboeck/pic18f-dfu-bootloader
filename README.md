@@ -42,10 +42,8 @@ What works
 ----------
 * Download application
 * Upload
-
-Should work, but not tested
----------------------------
 * Interrupts
+* Leave bootloader and jump to application
 
 ToDo
 ----
