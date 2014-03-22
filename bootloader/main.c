@@ -36,15 +36,9 @@
 
 #pragma stack 0x200 255
 
-void jump_to_app() {
-    RCON |= 0x93;     // reset all reset flag
-	debug("Jump to app\n");
-	__asm
-		goto ENTRY
-    __endasm;
-}
-
 void main(void) {
+
+	u16 reset_timeout = 0;
 	/*
 	 * Initialize Ports
 	 */
@@ -91,6 +85,8 @@ void main(void) {
 	init_usb();
 	debug("USB interface started\n");
 
+	init_dfu();
+
 	/*
 	 * Run USB, DFU, ...
 	 */
@@ -100,6 +96,17 @@ void main(void) {
 		dispatch_usb_event();
 		if (dfuOperationStarted()) {
 			dfuFinishOperation();
+		}
+		if (dfuWaitReset()) {
+			setManifest();
+			reset_timeout++;
+		}
+		if (reset_timeout > 0) {
+			reset_timeout++;
+		}
+		if (reset_timeout > 10000) {
+			close_usb();
+			jump_to_app();
 		}
 	}
 

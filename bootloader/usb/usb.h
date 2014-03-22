@@ -156,6 +156,7 @@ extern void (***ep_setup)(void);
 
 void init_usb(void);
 void enable_usb(void);
+void close_usb(void);
 void dispatch_usb_event(void);
 void fill_in_buffer(u8 EPnum, u8 **source, u16 buffer_size, u16 *nb_byte);
 

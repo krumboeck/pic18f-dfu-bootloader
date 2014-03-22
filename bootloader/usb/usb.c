@@ -91,6 +91,19 @@ void unsuspend(void) {
 	UIRbits.ACTVIF = 0;
 }
 
+void close_usb(void) {
+	// Flush any pending transactions
+	while (UIRbits.TRNIF == 1)
+		UIRbits.TRNIF = 0;
+
+	// Disable packet processing
+	UCONbits.PKTDIS = 1;
+
+	UCON = 0;
+	UIE = 0;
+	UCONbits.USBEN = 0;
+}
+
 void bus_reset() {
 	u8 i;
 

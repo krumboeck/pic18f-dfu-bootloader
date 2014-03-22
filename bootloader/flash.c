@@ -27,6 +27,8 @@
 
 void eraseFlash(u32 address) {
 
+    PIR2bits.EEIF = 0;
+
 	TBLPTRL = (address) & 0xFF;
 	TBLPTRH = (address >> 8) & 0xFF;
 	TBLPTRU = (address >> 16) & 0xFF;
@@ -50,6 +52,9 @@ void eraseFlash(u32 address) {
     EECON1bits.WR = 1;  // start write or erase operation
     EECON1bits.FREE = 0;// back to write operation
 
+    while (!PIR2bits.EEIF);
+    PIR2bits.EEIF = 0;
+    EECON1bits.WREN = 0;
 }
 
 void readFlash(u32 address, u8 *buffer, u8 length) {
@@ -91,6 +96,8 @@ void readFlash(u32 address, u8 *buffer, u8 length) {
 void writeFlash(u32 address, u8 *buffer, u8 length) {
 
 	int counter;
+
+    PIR2bits.EEIF = 0;
 
 	TBLPTRL = (address) & 0xFF;
 	TBLPTRH = (address >> 8) & 0xFF;
@@ -141,5 +148,9 @@ void writeFlash(u32 address, u8 *buffer, u8 length) {
                             // CPU stall here for 2ms
 
     INTCONbits.GIE = 1;
+
+    while (!PIR2bits.EEIF);
+    PIR2bits.EEIF = 0;
+    EECON1bits.WREN = 0;
 
 }

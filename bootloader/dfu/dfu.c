@@ -25,6 +25,7 @@
  * THE SOFTWARE.
  */
 
+#include "pic18fregs.h"
 #include "typedef.h"
 #include "debug.h"
 #include "usb/usb_std_req.h"
@@ -36,7 +37,7 @@ DFU_Status dfu_status;
 DFU_OP_State dfu_op_state;
 u8 dfuBusy;
 u8 dfuSubCommand;
-u32 address;
+u32 address = 0;
 u8 transfer[DATA_BUFFER_SIZE];
 u16 transfer_length;
 
@@ -71,7 +72,6 @@ u8 process_dfu_request(StandardRequest *request) {
 	// debug2("DFU Index  : %d\r\n", request->wIndex);
 
 	dfuBusy = 1;
-	// dfuSubCommand = DFU_NO_CMD;
 
 	if (currentState == dfuIDLE) {
 		dfuBusy = 1;
@@ -95,18 +95,11 @@ u8 process_dfu_request(StandardRequest *request) {
 				}
 
 			} else {
-				dfu_status.bState = dfuERROR;
-				dfu_status.bStatus = errNOTDONE;
+				dfu_status.bState = dfuMANIFEST_SYNC;
 			}
 		} else if (request->bRequest == DFU_UPLOAD) {
 			dfu_status.bState = dfuUPLOAD_IDLE;
 
-			/* record length of first block for calculating target
-			 address from wValue in consecutive blocks */
-			//uploadBlockLen = request->wLength;
-			//thisBlockLen = uploadBlockLen; /* for this first block as well */
-			/* calculate where the data should be copied from */
-			//userFirmwareLen = uploadBlockLen * request->wValue;
 			if (request->wIndex == 0) {
 				debug("DFU Start Upload\r\n");
 				if (request->wValue == 0) {
@@ -115,10 +108,6 @@ u8 process_dfu_request(StandardRequest *request) {
 					dfuSubCommand = DFU_CMD_UPLOAD;
 					address = ENTRY;
 				}
-				/*
-				 userAppAddr = USER_CODE_FLASH;
-				 userAppEnd = FLASH_END;
-				 */
 			} else {
 				dfu_status.bState = dfuERROR;
 				dfu_status.bStatus = errUNKNOWN;
@@ -144,8 +133,13 @@ u8 process_dfu_request(StandardRequest *request) {
 
 			if (dfu_op_state == INIT) {
 				dfu_op_state = BEGIN;
-				dfu_status.bwPollTimeout0 = 0x20;
-				dfu_status.bwPollTimeout1 = 0x00;
+				if (dfuSubCommand == DFU_CMD_MASS_ERASE) {
+					dfu_status.bwPollTimeout0 = 0xFF;
+					dfu_status.bwPollTimeout1 = 0x04;
+				} else {
+					dfu_status.bwPollTimeout0 = 0x20;
+					dfu_status.bwPollTimeout1 = 0x00;
+				}
 				dfu_status.bState = dfuDNBUSY;
 
 			} else if (dfu_op_state == BEGIN) {
@@ -156,6 +150,7 @@ u8 process_dfu_request(StandardRequest *request) {
 
 			} else if (dfu_op_state == END) {
 				dfu_status.bwPollTimeout0 = 0x00;
+				dfu_status.bwPollTimeout1 = 0x00;
 				dfu_op_state = INIT;
 				dfu_status.bState = dfuDNLOAD_IDLE;
 			}
@@ -190,7 +185,6 @@ u8 process_dfu_request(StandardRequest *request) {
 					dfuSubCommand = DFU_CMD_DOWNLOAD;
 				}
 			} else {
-				/* todo, support "disagreement" if device expects more data than this */
 				dfu_status.bState = dfuMANIFEST_SYNC;
 			}
 		} else if (request->bRequest == DFU_ABORT) {
@@ -221,8 +215,7 @@ u8 process_dfu_request(StandardRequest *request) {
 	} else if (currentState == dfuMANIFEST) {
 		/* device is in manifestation phase */
 
-		/* should never receive request while in manifest! */
-		dfu_status.bState = dfuMANIFEST_WAIT_RESET;
+		dfu_status.bState = dfuMANIFEST;
 		dfu_status.bStatus = OK;
 
 	} else if (currentState == dfuMANIFEST_WAIT_RESET) {
@@ -243,25 +236,6 @@ u8 process_dfu_request(StandardRequest *request) {
 					dfuSubCommand = DFU_CMD_UPLOAD;
 					address = ENTRY;
 				}
-				/* check that this is not the last possible block */
-				/*
-				 userFirmwareLen = uploadBlockLen * request->wValue;
-				 if (userAppAddr + userFirmwareLen + uploadBlockLen <= userAppEnd) {
-				 thisBlockLen = uploadBlockLen;
-				 dfu_status.bState = dfuUPLOAD_IDLE;
-				 } else {
-				 */
-				/* if above comparison was just equal, thisBlockLen becomes zero
-				 next time when USBWValue has been increased by one */
-//          thisBlockLen = userAppEnd - userAppAddr - userFirmwareLen;
-				/* check for overflow due to USBwValue out of range */
-				/*
-				 if (thisBlockLen >= request->wLength) {
-				 thisBlockLen = 0;
-				 }
-				 dfu_status.bState = dfuIDLE;
-				 }
-				 */
 			} else {
 				dfu_status.bState = dfuERROR;
 				dfu_status.bStatus = errNOTDONE;
@@ -318,6 +292,13 @@ void dfuExecCommand() {
 			dfu_status.bState = dfuERROR;
 			dfu_status.bStatus = errADDRESS;
 		}
+	} else if (dfuSubCommand == DFU_CMD_MASS_ERASE) {
+		u32 erase_address;
+		debug("start mass-erase\n");
+		for (erase_address = ENTRY; erase_address < FLASH_END; erase_address += ERASE_PAGE_SIZE) {
+			eraseFlash(erase_address);
+		}
+		debug("stop mass-erase\n");
 	} else if (dfuSubCommand == DFU_CMD_DOWNLOAD) {
 		if (address >= ENTRY && address <= FLASH_END) {
 			int counter;
@@ -355,6 +336,29 @@ void dfuFinishOperation() {
 		dfuExecCommand();
 		dfu_op_state = END;
 	}
+}
+
+u8 dfuWaitReset() {
+	return dfu_status.bState == dfuMANIFEST_WAIT_RESET ? 1 : 0;
+}
+
+void setManifest() {
+	dfu_status.bState = dfuMANIFEST;
+}
+
+void jump_to_app() {
+    RCON |= 0x93;     // reset all reset flag
+	debug("Jump to app\n");
+	/* TODO: make goto variable
+	if (address >= ENTRY && address <= FLASH_END) {
+		address += 4;
+	} else {
+		address = ENTRY;
+	}
+	*/
+	__asm
+		goto ENTRY
+    __endasm;
 }
 
 void process_dfu_data(u8 *buffer, u16 length) {
@@ -440,10 +444,6 @@ u16 read_dfu_data(StandardRequest *request, u8 *buffer, u16 max_length) {
 		if (read_address >= FLASH_END) {
 			length = 0;
 			dfu_status.bState = dfuIDLE;
-			/*
-			dfu_status.bState = dfuERROR;
-			dfu_status.bStatus = errADDRESS;
-			*/
 		} else {
 			int counter;
 			int readed = 0;
