@@ -97,14 +97,14 @@ void main(void) {
 		if (dfuOperationStarted()) {
 			dfuFinishOperation();
 		}
-		if (dfuWaitReset()) {
-			setManifest();
+		if (dfuIsManifest()) {
 			reset_timeout++;
 		}
 		if (reset_timeout > 0) {
 			reset_timeout++;
 		}
 		if (reset_timeout > 10000) {
+			setManifestWaitReset();
 			close_usb();
 			jump_to_app();
 		}

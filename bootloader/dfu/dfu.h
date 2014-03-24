@@ -111,7 +111,7 @@ u16 read_dfu_data(StandardRequest *request, u8 *buffer, u16 max_length);
 
 u8 dfuOperationStarted(void);
 void dfuFinishOperation(void);
-u8 dfuWaitReset(void);
-void setManifest(void);
+u8 dfuIsManifest(void);
+void setManifestWaitReset(void);
 void jump_to_app(void);
 

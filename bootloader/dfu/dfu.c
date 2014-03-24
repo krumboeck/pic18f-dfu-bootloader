@@ -78,15 +78,12 @@ u8 process_dfu_request(StandardRequest *request) {
 		if (request->bRequest == DFU_DNLOAD) {
 
 			if (request->wLength > 0) {
-				// userFirmwareLen = 0;
 				dfu_status.bState = dfuDNLOAD_SYNC;
 
 				if (request->wIndex == 0) {
 					if (request->wValue == 0) {
-						debug("Subcommand\n");
 						dfuSubCommand = DFU_WAIT_CMD;
 					} else {
-						debug("DFU Start Download\n");
 						dfuSubCommand = DFU_CMD_DOWNLOAD;
 					}
 				} else {
@@ -95,13 +92,13 @@ u8 process_dfu_request(StandardRequest *request) {
 				}
 
 			} else {
-				dfu_status.bState = dfuMANIFEST_SYNC;
+				dfu_status.bState = dfuERROR;
+				dfu_status.bStatus = errNOTDONE;
 			}
 		} else if (request->bRequest == DFU_UPLOAD) {
 			dfu_status.bState = dfuUPLOAD_IDLE;
 
 			if (request->wIndex == 0) {
-				debug("DFU Start Upload\r\n");
 				if (request->wValue == 0) {
 					dfuSubCommand = DFU_CMD_GET_CMD;
 				} else {
@@ -114,9 +111,8 @@ u8 process_dfu_request(StandardRequest *request) {
 			}
 		} else if (request->bRequest == DFU_ABORT) {
 			dfu_status.bState = dfuIDLE;
-			dfu_status.bStatus = OK; /* are we really ok? we were just aborted */
+			dfu_status.bStatus = OK;
 		} else if (request->bRequest == DFU_GETSTATUS) {
-			debug("DFU get_status\r\n");
 			dfu_status.bState = dfuIDLE;
 		} else if (request->bRequest == DFU_GETSTATE) {
 			dfu_status.bState = dfuIDLE;
@@ -166,6 +162,7 @@ u8 process_dfu_request(StandardRequest *request) {
 		/* if were actually done writing, goto sync, else stay busy */
 		if (dfu_op_state == END) {
 			dfu_status.bwPollTimeout0 = 0x00;
+			dfu_status.bwPollTimeout1 = 0x00;
 			dfu_op_state = INIT;
 			dfu_status.bState = dfuDNLOAD_IDLE;
 		} else {
@@ -178,10 +175,8 @@ u8 process_dfu_request(StandardRequest *request) {
 			if (request->wLength > 0) {
 				dfu_status.bState = dfuDNLOAD_SYNC;
 				if (request->wValue == 0) {
-					debug("Subcommand\n");
 					dfuSubCommand = DFU_WAIT_CMD;
 				} else {
-					debug("DFU Start Download\n");
 					dfuSubCommand = DFU_CMD_DOWNLOAD;
 				}
 			} else {
@@ -191,9 +186,9 @@ u8 process_dfu_request(StandardRequest *request) {
 			dfu_status.bState = dfuIDLE;
 			address = 0;
 		} else if (request->bRequest == DFU_GETSTATUS) {
-			dfu_status.bState = dfuIDLE;
+			dfu_status.bState = dfuDNLOAD_IDLE;
 		} else if (request->bRequest == DFU_GETSTATE) {
-			dfu_status.bState = dfuIDLE;
+			dfu_status.bState = dfuDNLOAD_IDLE;
 		} else {
 			dfu_status.bState = dfuERROR;
 			dfu_status.bStatus = errSTALLEDPKT;
@@ -203,7 +198,7 @@ u8 process_dfu_request(StandardRequest *request) {
 		/* device has received last block, waiting DFU_GETSTATUS request */
 
 		if (request->bRequest == DFU_GETSTATUS) {
-			dfu_status.bState = dfuMANIFEST_WAIT_RESET;
+			dfu_status.bState = dfuMANIFEST;
 			dfu_status.bStatus = OK;
 		} else if (request->bRequest == DFU_GETSTATE) {
 			dfu_status.bState = dfuMANIFEST_SYNC;
@@ -219,10 +214,7 @@ u8 process_dfu_request(StandardRequest *request) {
 		dfu_status.bStatus = OK;
 
 	} else if (currentState == dfuMANIFEST_WAIT_RESET) {
-		/* device has programmed new firmware but needs external
-		 usb reset or power on reset to run the new code */
 
-		/* consider timing out and self-resetting */
 		dfu_status.bState = dfuMANIFEST_WAIT_RESET;
 
 	} else if (currentState == dfuUPLOAD_IDLE) {
@@ -234,11 +226,9 @@ u8 process_dfu_request(StandardRequest *request) {
 					dfuSubCommand = DFU_CMD_GET_CMD;
 				} else {
 					dfuSubCommand = DFU_CMD_UPLOAD;
-					address = ENTRY;
 				}
 			} else {
-				dfu_status.bState = dfuERROR;
-				dfu_status.bStatus = errNOTDONE;
+				dfuSubCommand = DFU_CMD_UPLOAD;
 			}
 		} else if (request->bRequest == DFU_ABORT) {
 			dfu_status.bState = dfuIDLE;
@@ -261,9 +251,7 @@ u8 process_dfu_request(StandardRequest *request) {
 		} else if (request->bRequest == DFU_GETSTATE) {
 			dfu_status.bState = dfuERROR;
 		} else if (request->bRequest == DFU_CLRSTATUS) {
-			/* todo handle any cleanup we need here */
-			dfu_status.bState = dfuIDLE;
-			dfu_status.bStatus = OK;
+			init_dfu();
 		} else {
 			dfu_status.bState = dfuERROR;
 			dfu_status.bStatus = errSTALLEDPKT;
@@ -338,12 +326,12 @@ void dfuFinishOperation() {
 	}
 }
 
-u8 dfuWaitReset() {
-	return dfu_status.bState == dfuMANIFEST_WAIT_RESET ? 1 : 0;
+u8 dfuIsManifest() {
+	return dfu_status.bState == dfuMANIFEST ? 1 : 0;
 }
 
-void setManifest() {
-	dfu_status.bState = dfuMANIFEST;
+void setManifestWaitReset() {
+	dfu_status.bState = dfuMANIFEST_WAIT_RESET;
 }
 
 void jump_to_app() {
@@ -393,6 +381,7 @@ void process_dfu_data(u8 *buffer, u16 length) {
 		} else if (command == READ_UNPROTECTED_TOKEN) {
 			dfuSubCommand = DFU_CMD_READ_UNPROTECTED;
 			debug("Read Unprotected\n");
+			/* TODO: Not implemented yet */
 		} else {
 			dfu_status.bState = dfuERROR;
 			dfu_status.bStatus = errSTALLEDPKT;
@@ -406,9 +395,9 @@ void process_dfu_data(u8 *buffer, u16 length) {
 			}
 		} else {
 			transfer_length = 0;
-			dfuSubCommand = DFU_WAIT_CMD;
+			dfuSubCommand = DFU_NO_CMD;
 			dfu_status.bState = dfuERROR;
-			dfu_status.bStatus = errUNKNOWN;
+			dfu_status.bStatus = errWRITE;
 		}
 	}
 
