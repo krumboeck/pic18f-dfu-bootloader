@@ -25,8 +25,8 @@
 /*
  * Comment out the next two lines if there is no led
  */
-#define LED_OUTPUT LATBbits.LATB0
-#define LED_TRIS TRISBbits.TRISB0
+#define LED_OUTPUT LATBbits.LATB2
+#define LED_TRIS TRISBbits.TRISB2
 
 /*
  * Comment out the next three lines if there is no button/jumper
@@ -42,3 +42,5 @@
 #define EP0_BUFFER_SIZE 32
 #define DATA_BUFFER_SIZE 32
 #define ERASE_PAGE_SIZE 64
+#define MASS_ERASE_TIME 0x04FF
+#define WRITE_TIME 0x0004

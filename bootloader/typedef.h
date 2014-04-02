@@ -20,6 +20,9 @@
 #define TRUE 1
 #define FALSE 0
 
+#define HIGHB(x)  ((x) >> 8)
+#define LOWB(x)   ((x) & 0xFF)
+
 typedef signed char s8;
 typedef signed int s16;
 typedef signed long s32;

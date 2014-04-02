@@ -130,11 +130,13 @@ u8 process_dfu_request(StandardRequest *request) {
 			if (dfu_op_state == INIT) {
 				dfu_op_state = BEGIN;
 				if (dfuSubCommand == DFU_CMD_MASS_ERASE) {
-					dfu_status.bwPollTimeout0 = 0xFF;
-					dfu_status.bwPollTimeout1 = 0x04;
+					dfu_status.bwPollTimeout0 = LOWB(MASS_ERASE_TIME);
+					dfu_status.bwPollTimeout1 = HIGHB(MASS_ERASE_TIME);
+					dfu_status.bwPollTimeout2 = 0x00;
 				} else {
-					dfu_status.bwPollTimeout0 = 0x20;
-					dfu_status.bwPollTimeout1 = 0x00;
+					dfu_status.bwPollTimeout0 = LOWB(WRITE_TIME);
+					dfu_status.bwPollTimeout1 = HIGHB(WRITE_TIME);
+					dfu_status.bwPollTimeout2 = 0x00;
 				}
 				dfu_status.bState = dfuDNBUSY;
 
@@ -147,6 +149,7 @@ u8 process_dfu_request(StandardRequest *request) {
 			} else if (dfu_op_state == END) {
 				dfu_status.bwPollTimeout0 = 0x00;
 				dfu_status.bwPollTimeout1 = 0x00;
+				dfu_status.bwPollTimeout2 = 0x00;
 				dfu_op_state = INIT;
 				dfu_status.bState = dfuDNLOAD_IDLE;
 			}
@@ -163,6 +166,7 @@ u8 process_dfu_request(StandardRequest *request) {
 		if (dfu_op_state == END) {
 			dfu_status.bwPollTimeout0 = 0x00;
 			dfu_status.bwPollTimeout1 = 0x00;
+			dfu_status.bwPollTimeout2 = 0x00;
 			dfu_op_state = INIT;
 			dfu_status.bState = dfuDNLOAD_IDLE;
 		} else {
